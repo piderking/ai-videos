@@ -12,6 +12,10 @@ ENV PYTHONUNBUFFERED=1
 ENV CONFIG_URL=0
 ENV ELEVEN_LABS_TOKEN=!
 
+# Install FFMPEG
+RUN apt-get install ffmpeg
+
+
 # Install pip requirements
 COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
