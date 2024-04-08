@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  aivideos:
+    image: aivideos
+    build:
+      context: .
+      dockerfile: ./Dockerfile
