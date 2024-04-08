@@ -1,0 +1,4 @@
+import vosk
+
+print("Hello!")
+
