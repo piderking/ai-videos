@@ -1,5 +1,4 @@
 import os, requests
-from bs4 import BeautifulSoup
 import json
 import re
 import requests
@@ -37,7 +36,7 @@ for tabe in table["data"]["children"]:
 
 for text in texts:
     data = {
-    "text": text,
+    "text": text[:500],
     "model_id": "eleven_monolingual_v1",
     "voice_settings": {
         "stability": 0.5,
