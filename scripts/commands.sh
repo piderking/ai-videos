@@ -1,16 +1,32 @@
 
+# -----------------------------------------------
+# Builder 
+mkdir build
+
+# Loop mp4
+ffmpeg -stream_loop -1 -i data/s_input.mp4 -t 60s -c copy data/input.mp4
+# Remove Sound from MP4
+# ffmpeg -i data/input.mp4 -c copy -an data/input_soundless.mp4
+ffmpeg -i data/input.mp4 -vf "scale=-1:1920, crop=1080:1920:656.25:0, fps=30" -an data/input_soundless.mp4
 
 
-vosk-transcriber -i data/{}.mp4 -t srt -o subs.srt
+# Generate TTS (Automated Soon)
+py scripts/sample_eleven_labs.py 
 
-ffmpeg -i sample_video_ffmpeg.mp4 -vf subtitles=sample_video_subtitle_ffmpeg.srt output_srt.mp4
+# Add TTS to Video
+ffmpeg -i data/input_soundless.mp4 -i data/tts.mp3 -t 60s -y data/output.mp4
 
-ffmpeg -i data/input.mp4 -vf subtitles=build/subs.srtsub.srt:force_style='Fontname=DejaVu Serif,PrimaryColour=&HCCFF0000' output_srt.mp4
 
+# rm data/input_soundless.mp4
+# rm input.mp4
+# rm tts.mp3
 
-# Build ASS Subtitles
-vosk-transcriber -i data/input.mp4 -t srt -o build/subs.srt
+# Build SRT Subtitles
+vosk-transcriber -i data/output.mp4 -t srt -o build/subs.srt
 
+# Transform into .ass
 ffmpeg -i build/subs.srt build/subs.ass
 
-ffmpeg -i data/input.mp4 -vf ass=build/subs.ass build/output.mp4
+# Add Subtiles
+ffmpeg -i data/output.mp4 -vf ass=build/subs.ass build/output.mp4
+
