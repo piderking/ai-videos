@@ -3,10 +3,16 @@
 # Builder 
 mkdir build
 
+# OPTIONAL
+# How to Make ontop of each, crop both to the wanted portion and then stack them
+ffmpeg -i data/input_soundless.mp4 -vf "crop=w='min(min(iw\,ih)\,1080)':h='min(min(iw\,ih)\,1920)',scale=-1:1920,setsar=1" data/cropped.mp4
+
 
 # Stack Videos
-ffmpeg -i input0 -i input1 -filter_complex vstack=inputs=2 output
+ffmpeg -i data/cropped.mp4 -i data/cropped.mp4 -filter_complex vstack=inputs=2 data/stacked.mp4
+# OPTIONAL
 
+# -----
 # Download Videos
 python3 scripts/sample_pexel.py
 # Loop mp4

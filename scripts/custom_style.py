@@ -1,4 +1,3 @@
-import re
 f = open("build/subs.ass", "r")
 
 # Use the Custom Styles
