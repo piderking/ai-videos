@@ -3,8 +3,12 @@ import json
 import re
 import requests
 import random
+import language_tool_python
 
-# Fore testing $ENV:URLS="https://www.reddit.com/r/AmItheAsshole/comments/1bzq7j5/aita_for_naming_my_son_after_my_father_instead_of/"
+
+tool = language_tool_python.LanguageToolPublicAPI('en-US') # or use public API
+
+# Fore testing $ENV:URLS="https://www.reddit.com/r/AmItheAsshole/comments/1bzvso5/aita_for_trying_to_take_back_80k_of_the_160000_my/"
 links = os.environ.get("URLS").split(";")
 # ENVIRONMENT VARIABLES (TODO Make these call from Enviroment)
 DURATION=20 # Seconds
@@ -19,7 +23,7 @@ table = json.loads(open("hot.json", "r").read())
 # Where all the titles/text will be generated to
 titles = []
 texts = []
-
+video_types = ["nature", "drone videos", "sunset", "ocean"]
 # HTTP Headers for 11 Labs
 headers = {
   "Accept": "audio/mpeg",
@@ -28,6 +32,13 @@ headers = {
 }
 CHUNK_SIZE = 2048
 # Functions
+
+# Create Directories
+if not os.path.exists("data/"):
+    os.mkdir("data")
+if not os.path.exists("build/"):
+    os.mkdir("build")
+
 
 def addCustomStyles(count: int):
     f = open("data/{}/subs.ass".format(count), "r")
@@ -47,9 +58,25 @@ def addCustomStyles(count: int):
     Style: Default,Roboto,16,&Hffffff,&Hffffff,&H0,&H0,0,0,0,0,100,100,0,0,0,1,0,2,10,10,120,1
 
     [Events]{}""".format(f.read().split("[Events]")[1])
+    
+    vals = []
+    for c, t in enumerate(temp.split("Dialogue")[1:]):
+        if c == 0:
+            vals.append(tool.correct(t.split(",")[-1].strip()))
+        else:
+            vals.append(tool.correct(t.split(",")[-1].strip()).lower())
+
+    nTemp = temp.split("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")[0]
+    vtemp = temp.split("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")[1]
+    vStr = ''
+    for v in vals:
+        for x in vtemp.split(",")[:9]:
+            vStr += x + ","
+        vStr += v
+        print(v)
 
     w = open("data/{}/subs.ass".format(count), "w")
-    w.write(temp)
+    w.write(nTemp+"Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"+vtemp)
 
 # Start of Scripting---------
 for tabe in table["data"]["children"]:
@@ -91,7 +118,7 @@ for count, text in enumerate(texts):
     if not os.path.exists("data/{}/video.mp4".format(count)):
         print("Video: {} Doesn't Exsists".format(count))
 
-        r = requests.get("https://api.pexels.com/videos/search?query=nature&per_page=4&orientation=portrait", headers={'Authorization': 'p1p0I9iC7ChShttx4Z29WDLsyfW6V6mSm05l0cE0evnxyYckEdCFqkEl'})
+        r = requests.get("https://api.pexels.com/videos/search?query={}&per_page=10&orientation=portrait".format(video_types[random.randint(0, len(video_types)-1)]), headers={'Authorization': 'p1p0I9iC7ChShttx4Z29WDLsyfW6V6mSm05l0cE0evnxyYckEdCFqkEl'})
 
 
         ri = requests.get("https://api.pexels.com/videos/videos/{}".format(r.json()["videos"][random.randint(0, len(r.json()["videos"])-1)]["id"]), headers={'Authorization': 'p1p0I9iC7ChShttx4Z29WDLsyfW6V6mSm05l0cE0evnxyYckEdCFqkEl'})
@@ -103,7 +130,7 @@ for count, text in enumerate(texts):
                 with open("data/{}/video.mp4".format(count),'wb') as f:
                   f.write(ro.content)
 
-            print("Video: {} Finished Downloading".format(count))
+        print("Video: {} Finished Downloading".format(count))
     else:
         print("Video: {} Already Exsists".format(count))
     # Remove Audio and Crop Video
@@ -148,3 +175,4 @@ for count, text in enumerate(texts):
         print("Finalized Video: {} Already Exsists".format(count))
 
 
+print("-------\nPrint Titles: \t{}".format(titles))

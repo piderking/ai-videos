@@ -23,8 +23,14 @@ ffmpeg -stream_loop -1 -i data/s_input.mp4 -t 60s -c copy data/input.mp4
 ffmpeg -i data/input.mp4 -vf "scale=-1:1920, crop=1080:1920:656.25:0" -an data/input_soundless.mp4
 
 
-# Generate TTS (Automated Soon)
+# Generate TTS (11 Labs)
 py scripts/sample_eleven_labs.py 
+
+# Generate TTS (Free)
+
+# Generate mp3 from wav
+ffmpeg -i data/{}/tts.wav -acodec libmp3lame data/{}/tts.mp3
+
 
 # Add TTS to Video
 ffmpeg -i data/input_soundless.mp4 -i data/tts.mp3 -t 60s -y data/output.mp4
