@@ -4,27 +4,8 @@ import re
 import requests
 import random
 from datetime import timedelta
-import whisper
-# import vosk
+import vosk
 
-
-def transcribe_audio(count):
-    model = whisper.load_model("small.en") # Base or Small
-    print("Whisper model loaded.")
-    transcribe = model.transcribe(audio="data/{}/tts.mp3".format(count))
-    segments = transcribe['segments']
-
-    for segment in segments:
-        startTime = str(0)+str(timedelta(seconds=int(segment['start'])))+',000'
-        endTime = str(0)+str(timedelta(seconds=int(segment['end'])))+',000'
-        text = segment['text']
-        segmentId = segment['id']+1
-        segment = f"{segmentId}\n{startTime} --> {endTime}\n{text[1:] if text[0] is ' ' else text}\n\n"
-
-        with open("data/{}/subs.srt".format(count), 'a', encoding='utf-8') as srtFile:
-            srtFile.write(segment)
-
-    return "data/{}/subs.srt".format(count)
 
 
 # Fore testing $ENV:URLS="https://www.reddit.com/r/AmItheAsshole/comments/1bzvso5/aita_for_trying_to_take_back_80k_of_the_160000_my/"
@@ -171,8 +152,9 @@ for count, text in enumerate(texts):
 
     # Build SRT Subtitles
     if os.path.exists("data/{}/video_tts_loop.mp4".format(count)) and not os.path.exists("data/{}/subs.srt".format(count)):
-        #os.system('vosk-transcriber -i data/{}/video_tts_loop.mp4 -t srt -o data/{}/subs.srt'.format(count, count))
-        transcribe_audio(count) # Defined function, run whisper AI
+        # vosk-transcriber -n vosk-model-en-us-0.22 -i data/0/video_tts_loop.mp4 -t srt -o data/0/subs.srt
+        os.system('vosk-transcriber -i data/{}/video_tts_loop.mp4 -t srt -o data/{}/subs.srt'.format(count, count))
+        # transcribe_audio(count) # Defined function, run whisper AI
     else:
         print("Subtitles: {} Already Exsists".format(count))
 
