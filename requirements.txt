@@ -1,3 +1,4 @@
 requests
-vosk # Speech Recognition
-tts # TTS
+#vosk # Speech Recognition
+#language_tool_python
+openai-whisper

@@ -3,10 +3,27 @@ import json
 import re
 import requests
 import random
-import language_tool_python
+from datetime import timedelta
+import whisper
 
+def transcribe_audio(count):
+    model = whisper.load_model("small.en") # Base or Small
+    print("Whisper model loaded.")
+    transcribe = model.transcribe(audio="data/{}/tts.mp3".format(count))
+    segments = transcribe['segments']
 
-tool = language_tool_python.LanguageToolPublicAPI('en-US') # or use public API
+    for segment in segments:
+        startTime = str(0)+str(timedelta(seconds=int(segment['start'])))+',000'
+        endTime = str(0)+str(timedelta(seconds=int(segment['end'])))+',000'
+        text = segment['text']
+        segmentId = segment['id']+1
+        segment = f"{segmentId}\n{startTime} --> {endTime}\n{text[1:] if text[0] is ' ' else text}\n\n"
+
+        with open("data/{}/subs.srt".format(count), 'a', encoding='utf-8') as srtFile:
+            srtFile.write(segment)
+
+    return "data/{}/subs.srt".format(count)
+
 
 # Fore testing $ENV:URLS="https://www.reddit.com/r/AmItheAsshole/comments/1bzvso5/aita_for_trying_to_take_back_80k_of_the_160000_my/"
 links = os.environ.get("URLS").split(";")
@@ -62,9 +79,9 @@ def addCustomStyles(count: int):
     vals = []
     for c, t in enumerate(temp.split("Dialogue")[1:]):
         if c == 0:
-            vals.append(tool.correct(t.split(",")[-1].strip()))
+            vals.append(t.split(",")[-1].strip())
         else:
-            vals.append(tool.correct(t.split(",")[-1].strip()).lower())
+            vals.append(t.split(",")[-1].strip().lower())
 
     nTemp = temp.split("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")[0]
     vtemp = temp.split("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")[1]
@@ -152,7 +169,8 @@ for count, text in enumerate(texts):
 
     # Build SRT Subtitles
     if os.path.exists("data/{}/video_tts_loop.mp4".format(count)) and not os.path.exists("data/{}/subs.srt".format(count)):
-        os.system('vosk-transcriber -i data/{}/video_tts_loop.mp4 -t srt -o data/{}/subs.srt'.format(count, count))
+        #os.system('vosk-transcriber -i data/{}/video_tts_loop.mp4 -t srt -o data/{}/subs.srt'.format(count, count))
+        transcribe_audio(count) # Defined function, run whisper AI
     else:
         print("Subtitles: {} Already Exsists".format(count))
 
