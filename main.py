@@ -5,6 +5,8 @@ import requests
 import random
 from datetime import timedelta
 import whisper
+# import vosk
+
 
 def transcribe_audio(count):
     model = whisper.load_model("small.en") # Base or Small
