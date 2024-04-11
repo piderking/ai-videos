@@ -1,4 +1,4 @@
 requests
-vosk # Speech Recognition
+# vosk # Speech Recognition
 #language_tool_python
-# openai-whisper
+openai-whisper

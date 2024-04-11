@@ -4,17 +4,35 @@ import re
 import requests
 import random
 from datetime import timedelta
-import vosk
+from datetime import timedelta
+import os
+
+import whisper
+from whisper.utils import get_writer 
 
 
 
-# Fore testing $ENV:URLS="https://www.reddit.com/r/AmItheAsshole/comments/1bzvso5/aita_for_trying_to_take_back_80k_of_the_160000_my/"
+def transcribe_audio(count):
+    audio = './data/{}/tts.mp3'.format(count)
+    model = whisper.load_model('base')
+    result = model.transcribe(audio=audio, language='en', word_timestamps=True, task="transcribe")
+
+    # Set VTT Line and words width
+    word_options = {
+        "highlight_words": False,
+        "max_line_count": 1,
+        "max_line_width": 30
+    }
+    vtt_writer = get_writer(output_format='srt', output_dir='./data/{}/'.format(count))
+    vtt_writer(result, audio, word_options)
+
+
+# Fore testing $ENV:URLS="https://www.reddit.com/r/AmItheAsshole/comments/1bzvso5/aita_for_trying_to_take_back_80k_of_the_160000_my/;https://www.reddit.com/r/AmItheAsshole/comments/1c01rms/aita_if_i_sell_my_youngest_daughters_car_to_help"
 links = os.environ.get("URLS").split(";")
 # ENVIRONMENT VARIABLES (TODO Make these call from Enviroment)
-DURATION=20 # Seconds
+DURATION=60 # Seconds
 
 print(links)
-
 # JSON Data from Reddit
 #table = requests.get("https://www.reddit.com/r/AmItheAsshole/hot.json",).json()
 table = json.loads(open("hot.json", "r").read())
@@ -73,7 +91,6 @@ def addCustomStyles(count: int):
         for x in vtemp.split(",")[:9]:
             vStr += x + ","
         vStr += v
-        print(v)
 
     w = open("data/{}/subs.ass".format(count), "w")
     w.write(nTemp+"Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"+vtemp)
@@ -81,6 +98,7 @@ def addCustomStyles(count: int):
 # Start of Scripting---------
 for tabe in table["data"]["children"]:
     if tabe["data"]["url"] in links: # Only do articles where the URL is provided
+        print("Creating Video for: " + tabe["data"]["title"])
         titles.append(tabe["data"]["title"])
         texts.append(tabe["data"]["selftext"])
         
@@ -90,8 +108,7 @@ for tabe in table["data"]["children"]:
 for count, text in enumerate(texts):
     if not os.path.exists("data/{}".format(count)):
         os.mkdir("data/{}".format(count))
-    characters = int(255 * (DURATION/30))
-    print(characters)
+    characters = int((4*300*(DURATION/60))) # Average Word Length is ~4.5
     data = {
     "text": text[:characters], # Word Count
     "model_id": "eleven_monolingual_v1",
@@ -113,7 +130,7 @@ for count, text in enumerate(texts):
 
 # Print Texts
 for count, text in enumerate(texts):
-
+    print("Starting to Edit Videos #{}".format(count))
     # Download Pexel Videos
     if not os.path.exists("data/{}/video.mp4".format(count)):
         print("Video: {} Doesn't Exsists".format(count))
@@ -135,32 +152,32 @@ for count, text in enumerate(texts):
         print("Video: {} Already Exsists".format(count))
     # Remove Audio and Crop Video
     if os.path.exists("data/{}/video.mp4".format(count)) and not os.path.exists("data/{}/video_soundless.mp4".format(count)):
-        os.system('ffmpeg -i data/{}/video.mp4 -vf "scale=-1:1920, crop=1080:1920:656.25:0" -an data/{}/video_soundless.mp4'.format(count, count))
+        os.system('ffmpeg -i data/{}/video.mp4 -hide_banner -loglevel error -vf "scale=-1:1920, crop=1080:1920:656.25:0" -an data/{}/video_soundless.mp4'.format(count, count))
     else:
         print("Cropped Video: {} Already Exsists".format(count))
 
     # Loop 
     if os.path.exists("data/{}/video_soundless.mp4".format(count)) and not os.path.exists("data/{}/video_soundless_loop.mp4".format(count)):
-        os.system("ffmpeg -stream_loop -1 -i data/{}/video_soundless.mp4 -t {}s -c copy data/{}/video_soundless_loop.mp4".format(count, DURATION, count))
+        os.system("ffmpeg -stream_loop -1 -i data/{}/video_soundless.mp4 -hide_banner -loglevel error -t {}s -c copy data/{}/video_soundless_loop.mp4".format(count, DURATION, count))
     else:
         print("Looped and Soundless Video: {} Already Exsists".format(count))
     # Add TTS to Soundless Video
     if os.path.exists("data/{}/tts.mp3".format(count)) and os.path.exists("data/{}/video_soundless_loop.mp4".format(count)) and not os.path.exists("data/{}/video_tts_loop.mp4".format(count)):
-        os.system("ffmpeg -i data/{}/video_soundless_loop.mp4 -i data/{}/tts.mp3 -t {}s -y data/{}/video_tts_loop.mp4".format(count, count , DURATION, count)) 
+        os.system("ffmpeg -i data/{}/video_soundless_loop.mp4 -i data/{}/tts.mp3 -hide_banner -loglevel error -t {}s -y data/{}/video_tts_loop.mp4".format(count, count , DURATION, count)) 
     else:
         print("TTS Video: {} Already Exsists".format(count))
 
     # Build SRT Subtitles
     if os.path.exists("data/{}/video_tts_loop.mp4".format(count)) and not os.path.exists("data/{}/subs.srt".format(count)):
         # vosk-transcriber -n vosk-model-en-us-0.22 -i data/0/video_tts_loop.mp4 -t srt -o data/0/subs.srt
-        os.system('vosk-transcriber -i data/{}/video_tts_loop.mp4 -t srt -o data/{}/subs.srt'.format(count, count))
-        # transcribe_audio(count) # Defined function, run whisper AI
+        #os.system('vosk-transcriber -i data/{}/video_tts_loop.mp4 -t srt -o data/{}/subs.srt'.format(count, count))
+        transcribe_audio(count) # Defined function, run whisper AI
     else:
         print("Subtitles: {} Already Exsists".format(count))
 
     # Translation of SRT Subtitles
-    if os.path.exists("data/{}/subs.srt".format(count)) and not os.path.exists("data/{}/subs.ass".format(count)):
-        os.system('ffmpeg -i data/{}/subs.srt data/{}/subs.ass'.format(count, count))
+    if os.path.exists("data/{}/tts.srt".format(count)) and not os.path.exists("data/{}/subs.ass".format(count)):
+        os.system('ffmpeg -i data/{}/tts.srt  -hide_banner -loglevel error data/{}/subs.ass'.format(count, count))
     else:
         print("ASS Subtitles: {} Already Exsists".format(count))
     
@@ -172,7 +189,7 @@ for count, text in enumerate(texts):
 
     # Add SRT Subtitles
     if os.path.exists("data/{}/subs.ass".format(count)) and os.path.exists("data/{}/video_tts_loop.mp4".format(count)) and not os.path.exists("build/output-{}.mp4".format(count)):
-        os.system('ffmpeg -i data/{}/video_tts_loop.mp4 -vf ass=data/{}/subs.ass build/output-{}.mp4'.format(count, count, count))
+        os.system('ffmpeg -i data/{}/video_tts_loop.mp4 -hide_banner -loglevel error -vf ass=data/{}/subs.ass build/output-{}.mp4'.format(count, count, count))
     else:
         print("Finalized Video: {} Already Exsists".format(count))
 
